@@ -6,9 +6,9 @@ The AI scoring functionality requires the Vercel AI Gateway API key to be config
 
 **Add this to your environment variables:**
 
-```
+\`\`\`
 VERCEL_AI_GATEWAY_API_KEY=vck_3ZkCmRYgbfYXCvowGWeciYYf5AbfHpiCORN07Toq1sMIroK62D2IjiiN
-```
+\`\`\`
 
 This key has already been added to `.env.local` for local development.
 

@@ -82,18 +82,18 @@ Check the health endpoint:
 
 All required variables are already set:
 
-```
+\`\`\`
 DATABASE_URL - Neon PostgreSQL
 KV_REST_API_URL - Upstash Redis URL
 KV_REST_API_TOKEN - Upstash Redis Token
 POSTGRES_* - Additional Neon variables
-```
+\`\`\`
 
 No additional setup needed!
 
 ## File Structure
 
-```
+\`\`\`
 app/
 ├── page.tsx                    # Landing page
 ├── test/
@@ -138,7 +138,7 @@ lib/
 scripts/
 ├── 01_create_tables.sql      # Database indexes
 └── 02_seed_sample_questions.sql  # Sample data
-```
+\`\`\`
 
 ## Usage Examples
 
@@ -162,13 +162,13 @@ scripts/
 ### API Usage
 
 **Fetch Questions:**
-```typescript
+\`\`\`typescript
 const response = await fetch('/api/questions/speaking?type=read_aloud')
 const { questions } = await response.json()
-```
+\`\`\`
 
 **Score Speaking:**
-```typescript
+\`\`\`typescript
 const response = await fetch('/api/scoring/speaking', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -181,7 +181,7 @@ const response = await fetch('/api/scoring/speaking', {
   })
 })
 const { scores, remaining } = await response.json()
-```
+\`\`\`
 
 ## Customization
 
@@ -189,7 +189,7 @@ const { scores, remaining } = await response.json()
 
 Edit API routes in `app/api/scoring/`:
 
-```typescript
+\`\`\`typescript
 // Current: openai/gpt-5
 // Options: anthropic/claude-sonnet-4.5, xai/grok-4-fast, etc.
 const { object: scores } = await generateObject({
@@ -197,28 +197,28 @@ const { object: scores } = await generateObject({
   schema: scoringSchema,
   prompt: "..."
 })
-```
+\`\`\`
 
 ### Adjust Rate Limits
 
 Edit `lib/redis.ts`:
 
-```typescript
+\`\`\`typescript
 // Change limit and window
 await checkRateLimit(userId, 100, 3600) // 100 requests per hour
-```
+\`\`\`
 
 ### Modify Scoring Rubrics
 
 Edit the Zod schemas in `app/api/scoring/speaking/route.ts` and `writing/route.ts`:
 
-```typescript
+\`\`\`typescript
 const scoringSchema = z.object({
   overallScore: z.number().min(0).max(90),
   // Add custom rubrics here
   customScore: z.number().min(0).max(100),
 })
-```
+\`\`\`
 
 ## Troubleshooting
 

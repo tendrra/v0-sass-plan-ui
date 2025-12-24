@@ -43,9 +43,9 @@ All required environment variables are already configured:
 
 ### 3. Run the Development Server
 
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 Open [http://localhost:3000](http://localhost:3000) to see the platform.
 
@@ -128,9 +128,9 @@ The admin dashboard allows:
 ## Rate Limit Configuration
 
 Edit `lib/redis.ts` to adjust:
-```typescript
+\`\`\`typescript
 checkRateLimit(userId, limit, windowInSeconds)
-```
+\`\`\`
 
 ## AI Model Configuration
 
