@@ -14,45 +14,46 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log("[v0] Starting AI scoring stream...")
+    console.log("[v0] Starting AI reasoning stream for scoring...")
 
-    // Stream the AI reasoning and scoring
     const result = streamText({
       model: "openai/gpt-4o",
-      system: `You are an expert PTE (Pearson Test of English) speaking examiner. 
-      
-Your task is to:
-1. First, explain your reasoning step by step as you analyze the response
-2. Evaluate pronunciation, fluency, and content accuracy
-3. Provide detailed scores with justification
+      system: `You are an expert PTE (Pearson Test of English) speaking examiner with an agent-based evaluation system.
 
-Format your response as follows:
-1. Start with "REASONING:" followed by your detailed analysis
-2. Then provide "SCORES:" in JSON format
+Your task is to think through the response step-by-step and explain your reasoning:
+1. CONTENT EVALUATION: Analyze what was said and how well it answers the question
+2. FLUENCY ASSESSMENT: Listen to pacing, smoothness, hesitations, filler words
+3. PRONUNCIATION CHECK: Evaluate clarity, accent, word stress
+4. SCORING RATIONALE: Explain how scores were determined based on observations
 
-Be thorough in your reasoning to help the test taker understand their performance.`,
-      prompt: `Evaluate this PTE Read Aloud response:
+Format your response as a continuous stream of reasoning followed by final scores in JSON.
+Make your thinking transparent so the test taker understands how they were evaluated.`,
+      prompt: `You are evaluating a PTE Read Aloud response. Think through this carefully and share your reasoning.
 
 Original Text: "${questionText}"
 
 User's Transcribed Speech: "${transcript}"
 
-Provide your reasoning first, then scores for:
-- Content (0-90): Accuracy of words spoken
-- Fluency (0-90): Smoothness and pace
-- Pronunciation (0-90): Clarity and accuracy of sounds
+Walk me through your evaluation process:
+1. Content: How accurate and complete is the response?
+2. Fluency: How smooth and natural is the speech?
+3. Pronunciation: How clear and correct are the sounds?
 
-Think through each aspect carefully and explain your evaluation.`,
-      maxTokens: 1000,
+After reasoning through each aspect, provide final scores for:
+- Content (0-90)
+- Fluency (0-90)  
+- Pronunciation (0-90)
+- Overall (0-90)
+
+Be transparent in your thinking - the user should understand exactly how you evaluated their response.`,
+      maxTokens: 2000,
       temperature: 0.3,
     })
 
-    // Create a readable stream that formats the AI output
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const chunk of result.textStream) {
-            // Send each chunk to the client
             const data = JSON.stringify({ text: chunk })
             controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`))
           }

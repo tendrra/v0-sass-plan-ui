@@ -24,31 +24,34 @@ export async function POST(request: NextRequest) {
       confidence: 0.95,
     })
 
-    /*
     // Convert audio to proper format for Whisper
     const audioBuffer = await audioFile.arrayBuffer()
-    
+
     // Use OpenAI Whisper via AI Gateway
-    const formData = new FormData()
-    formData.append('file', new Blob([audioBuffer], { type: audioFile.type }), audioFile.name)
-    formData.append('model', 'whisper-1')
-    
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
+    const transcriptionFormData = new FormData()
+    transcriptionFormData.append("file", new Blob([audioBuffer], { type: audioFile.type }), audioFile.name)
+    transcriptionFormData.append("model", "whisper-1")
+
+    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_API_KEY}`,
+        Authorization: `Bearer ${process.env.VERCEL_AI_GATEWAY_API_KEY}`,
       },
-      body: formData,
+      body: transcriptionFormData,
     })
-    
+
+    if (!response.ok) {
+      throw new Error(`Transcription API error: ${response.statusText}`)
+    }
+
     const data = await response.json()
-    
+    console.log("[v0] Transcription successful via AI Gateway")
+
     return NextResponse.json({
       transcript: data.text,
-      duration: 35000,
+      duration: audioFile.size,
       confidence: 1.0,
     })
-    */
   } catch (error) {
     console.error("[v0] Error transcribing audio:", error)
     return NextResponse.json(

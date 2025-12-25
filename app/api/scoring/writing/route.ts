@@ -23,6 +23,12 @@ const writingScoringSchema = z.object({
     vocabularyHighlights: z.array(z.string()),
     coherenceNotes: z.string(),
   }),
+  reasoning: z.object({
+    contentReasoning: z.string(),
+    grammarReasoning: z.string(),
+    vocabularyReasoning: z.string(),
+    coherenceReasoning: z.string(),
+  }),
 })
 
 export async function POST(request: NextRequest) {
@@ -38,19 +44,25 @@ export async function POST(request: NextRequest) {
     const { object: scores } = await generateObject({
       model: "openai/gpt-4o-mini", // AI Gateway automatically uses VERCEL_AI_GATEWAY_API_KEY
       schema: writingScoringSchema,
-      prompt: `You are an expert PTE/IELTS writing examiner. Analyze this writing response and provide detailed scoring.
+      prompt: `You are an expert PTE/IELTS writing examiner with agent-based evaluation.
 
-Question: ${questionText}
-Response: ${userResponse}
-Time taken: ${timeTaken} seconds
+WRITING TASK: ${questionText}
+USER'S RESPONSE: ${userResponse}
+TIME TAKEN: ${timeTaken} seconds
 
-Provide scores (0-90) for:
-- Content: Task response, relevance, development of ideas
-- Grammar: Accuracy, range of structures, error-free sentences
-- Vocabulary: Range, appropriacy, precision, spelling
-- Coherence: Logical organization, linking words, paragraph structure
+EVALUATION PROCESS:
+1. CONTENT: Is the response addressing the task? Is it relevant, complete, and well-developed?
+2. GRAMMAR: Are there any grammatical errors? Is a range of structures used accurately?
+3. VOCABULARY: What is the range of vocabulary? Are words used precisely and appropriately?
+4. COHERENCE: Is the writing organized logically? Are ideas connected smoothly?
 
-Also provide detailed feedback and specific examples.`,
+For each dimension:
+- Explain what you observe in detail
+- Provide specific examples from the response
+- Give a score (0-90)
+- Suggest improvements
+
+Then provide overall feedback and scoring.`,
     })
 
     try {
@@ -67,7 +79,10 @@ Also provide detailed feedback and specific examples.`,
           grammarScore: scores.grammar,
           vocabularyScore: scores.vocabulary,
           coherenceScore: scores.coherence,
-          scores: scores as any,
+          scores: {
+            ...scores,
+            reasoning: scores.reasoning,
+          } as any,
         })
         .returning()
 

@@ -24,15 +24,19 @@ const scoringSchema = z.object({
       missedWords: z.array(z.string()),
     })
     .optional(),
+  reasoning: z.object({
+    contentAnalysis: z.string().describe("Detailed analysis of content"),
+    fluencyAnalysis: z.string().describe("Analysis of fluency and pacing"),
+    pronunciationAnalysis: z.string().describe("Analysis of pronunciation"),
+    scoringRationale: z.string().describe("Explanation of how scores were determined"),
+  }),
 })
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Starting scoring request...")
+    console.log("[v0] Starting AI speaking scoring with agents...")
     const body = await request.json()
     const { userId, questionId, transcript, audioUrl, questionText, durationMs } = body
-
-    console.log("[v0] Scoring for user:", userId, "question:", questionId)
 
     let rateLimitRemaining = 50
     try {
@@ -48,44 +52,52 @@ export async function POST(request: NextRequest) {
         )
       }
       rateLimitRemaining = rateLimit.remaining
-      console.log("[v0] Rate limit check passed, remaining:", rateLimitRemaining)
     } catch (redisError) {
-      console.warn("[v0] Redis rate limit check failed, continuing without rate limit:", redisError)
+      console.warn("[v0] Redis rate limit check failed, continuing:", redisError)
     }
 
     if (!process.env.VERCEL_AI_GATEWAY_API_KEY) {
       console.error("[v0] VERCEL_AI_GATEWAY_API_KEY is not set")
-      return NextResponse.json(
-        {
-          error: "AI Gateway not configured",
-          message: "Please add VERCEL_AI_GATEWAY_API_KEY to environment variables",
-        },
-        { status: 500 },
-      )
+      return NextResponse.json({ error: "AI Gateway not configured" }, { status: 500 })
     }
 
-    console.log("[v0] Calling AI Gateway for scoring...")
+    console.log("[v0] Calling AI Gateway with enhanced reasoning prompt...")
     const { object: scores } = await generateObject({
       model: "openai/gpt-4o-mini",
       schema: scoringSchema,
-      prompt: `You are an expert PTE/IELTS speaking examiner. Analyze this speaking response and provide detailed scoring.
+      prompt: `You are an expert PTE/IELTS speaking examiner with a detailed scoring agent.
 
-Question: ${questionText}
-Transcript: ${transcript}
-Duration: ${durationMs}ms
+TASK: Analyze this speaking response step by step and provide comprehensive scoring.
 
-Provide scores based on PTE criteria:
-- Content (0-90): Relevance, completeness, accuracy
-- Fluency (0-90): Smoothness, rhythm, hesitations
-- Pronunciation (0-90): Clarity, accent, word stress
+ORIGINAL QUESTION: ${questionText}
+USER'S TRANSCRIPT: ${transcript}
+DURATION: ${durationMs}ms
+WORDS SPOKEN: ${transcript.split(/\s+/).length}
 
-Also analyze:
-- Words per minute (normal: 120-150)
-- Filler words (um, uh, like, you know)
-- Provide constructive feedback`,
+EVALUATION PROCESS:
+1. First, analyze the CONTENT: Is the response relevant, complete, and accurate?
+2. Then, analyze FLUENCY: Is the speech smooth, with natural pacing and minimal hesitations?
+3. Finally, analyze PRONUNCIATION: Are words pronounced clearly and correctly?
+
+SCORING CRITERIA (0-90):
+- Content: Relevance to question, completeness, accuracy of information
+- Fluency: Smoothness, natural pacing, minimal filler words/hesitations
+- Pronunciation: Clarity, accent, word stress, ease of understanding
+
+For each dimension, provide:
+1. Detailed reasoning about what you observed
+2. Specific examples from the transcript
+3. Numerical score (0-90)
+4. Constructive feedback for improvement
+
+Also calculate:
+- Words per minute (normal range: 120-150)
+- Count of filler words (um, uh, like, you know, er, etc)
+
+Provide your complete reasoning as you evaluate, then final scores.`,
     })
 
-    console.log("[v0] AI scoring complete:", scores.overallScore)
+    console.log("[v0] AI scoring complete with reasoning:", scores.reasoning.scoringRationale.substring(0, 100))
 
     try {
       const [attempt] = await db
@@ -102,11 +114,12 @@ Also analyze:
           pronunciationScore: scores.pronunciation,
           wordsPerMinute: scores.wordsPerMinute.toString(),
           fillerRate: (scores.fillerWordCount / (transcript.split(" ").length || 1)).toString(),
-          scores: scores as any,
+          scores: {
+            ...scores,
+            reasoning: scores.reasoning,
+          } as any,
         })
         .returning()
-
-      console.log("[v0] Saved attempt to database:", attempt.id)
 
       return NextResponse.json({
         scores,
@@ -114,8 +127,7 @@ Also analyze:
         remaining: rateLimitRemaining,
       })
     } catch (dbError) {
-      console.warn("[v0] Database save failed (tables may not exist yet):", dbError)
-      // Return scores even if DB save fails
+      console.warn("[v0] Database save failed (tables may not exist):", dbError)
       return NextResponse.json({
         scores,
         remaining: rateLimitRemaining,
@@ -123,12 +135,11 @@ Also analyze:
       })
     }
   } catch (error) {
-    console.error("[v0] Error scoring speaking attempt:", error)
+    console.error("[v0] Error in AI scoring agent:", error)
     return NextResponse.json(
       {
         error: "Failed to score attempt",
         message: error instanceof Error ? error.message : "Unknown error",
-        details: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     )

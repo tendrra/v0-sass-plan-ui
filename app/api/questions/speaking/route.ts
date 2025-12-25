@@ -70,16 +70,22 @@ export async function GET(request: NextRequest) {
 
     // Always fallback to mock data
     console.log("[v0] Using mock questions")
-    return NextResponse.json({
-      questions: MOCK_QUESTIONS,
-      warning: "Using mock data - database tables not initialized",
-    })
+    return NextResponse.json(
+      {
+        questions: MOCK_QUESTIONS,
+        warning: "Using mock data - database tables not initialized",
+      },
+      { status: 200 },
+    ) // explicitly return 200 status
   } catch (error) {
     console.error("[v0] Error in questions route:", error)
-    return NextResponse.json({
-      questions: MOCK_QUESTIONS,
-      warning: "Using mock data due to error",
-    })
+    return NextResponse.json(
+      {
+        questions: MOCK_QUESTIONS,
+        warning: "Using mock data due to error",
+      },
+      { status: 200 },
+    )
   }
 }
 

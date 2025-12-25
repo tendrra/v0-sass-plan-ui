@@ -39,11 +39,13 @@ export default function SpeakingTestPage() {
     // Load questions
     fetch("/api/questions/speaking")
       .then(async (res) => {
-        if (!res.ok) throw new Error(`API error ${res.status}`)
         const data = await res.json()
         if (data.questions?.length > 0) {
           setQuestionList(data.questions)
           setCurrentQuestion(data.questions[0])
+          console.log("[v0] Loaded questions:", data.questions.length)
+        } else {
+          console.warn("[v0] No questions in response")
         }
       })
       .catch((error) => {
