@@ -39,17 +39,39 @@ export default function SpeakingTestPage() {
     // Load questions
     fetch("/api/questions/speaking")
       .then(async (res) => {
-        const data = await res.json()
-        if (data.questions?.length > 0) {
-          setQuestionList(data.questions)
-          setCurrentQuestion(data.questions[0])
-          console.log("[v0] Loaded questions:", data.questions.length)
-        } else {
-          console.warn("[v0] No questions in response")
+        try {
+          const data = await res.json()
+          if (data.questions?.length > 0) {
+            setQuestionList(data.questions)
+            setCurrentQuestion(data.questions[0])
+            console.log("[v0] Loaded questions:", data.questions.length)
+          } else {
+            console.warn("[v0] No questions in response", data)
+          }
+        } catch (parseError) {
+          console.error("[v0] Failed to parse response:", parseError)
+          // Fallback to hardcoded questions
+          const fallbackQuestions = [
+            {
+              id: "1001644",
+              title: "Road bicycle racing",
+              type: "read_aloud",
+              promptText: "Road bicycle racing is the cycle sports discipline of road cycling, held on paved roads.",
+              difficulty: "medium",
+              tags: ["sports"],
+              isActive: true,
+              preparationSeconds: 35,
+              responseSeconds: 35,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ]
+          setQuestionList(fallbackQuestions)
+          setCurrentQuestion(fallbackQuestions[0])
         }
       })
       .catch((error) => {
-        console.error("[v0] Error loading questions:", error)
+        console.error("[v0] Error loading questions fetch:", error)
       })
   }, [setQuestionList, setCurrentQuestion])
 

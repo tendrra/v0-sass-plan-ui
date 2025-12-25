@@ -51,9 +51,6 @@ const MOCK_QUESTIONS = [
 export async function GET(request: NextRequest) {
   try {
     console.log("[v0] Fetching speaking questions...")
-    const searchParams = request.nextUrl.searchParams
-    const type = searchParams.get("type")
-    const difficulty = searchParams.get("difficulty")
 
     try {
       // Try database first, but don't throw on failure
@@ -62,13 +59,16 @@ export async function GET(request: NextRequest) {
 
       if (questions && questions.length > 0) {
         console.log("[v0] Found questions from database:", questions.length)
-        return NextResponse.json({ questions })
+        return NextResponse.json({ questions }, { status: 200 })
       }
     } catch (dbError) {
-      console.warn("[v0] Database not available, using mock questions:", dbError)
+      console.warn(
+        "[v0] Database not available, using mock questions:",
+        dbError instanceof Error ? dbError.message : String(dbError),
+      )
     }
 
-    // Always fallback to mock data
+    // Always fallback to mock data with explicit 200 status
     console.log("[v0] Using mock questions")
     return NextResponse.json(
       {
@@ -76,13 +76,13 @@ export async function GET(request: NextRequest) {
         warning: "Using mock data - database tables not initialized",
       },
       { status: 200 },
-    ) // explicitly return 200 status
+    )
   } catch (error) {
-    console.error("[v0] Error in questions route:", error)
+    console.error("[v0] Unexpected error in questions route:", error instanceof Error ? error.message : String(error))
     return NextResponse.json(
       {
         questions: MOCK_QUESTIONS,
-        warning: "Using mock data due to error",
+        warning: "Using mock data due to unexpected error",
       },
       { status: 200 },
     )
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ question })
   } catch (error) {
-    console.error("[v0] Error creating speaking question:", error)
+    console.error("[v0] Error creating speaking question:", error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: "Failed to create question" }, { status: 500 })
   }
 }
