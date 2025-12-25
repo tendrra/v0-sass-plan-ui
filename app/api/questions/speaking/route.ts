@@ -49,40 +49,42 @@ const MOCK_QUESTIONS = [
 ]
 
 export async function GET(request: NextRequest) {
-  try {
-    console.log("[v0] Fetching speaking questions...")
+  let dbAvailable = false
 
+  try {
     try {
-      // Try database first, but don't throw on failure
       const query = db.select().from(speakingQuestions).where(eq(speakingQuestions.isActive, true))
       const questions = await query
 
       if (questions && questions.length > 0) {
-        console.log("[v0] Found questions from database:", questions.length)
-        return NextResponse.json({ questions }, { status: 200 })
+        console.log("[v0] Loaded questions from database:", questions.length)
+        return NextResponse.json({ questions, source: "database" }, { status: 200 })
       }
     } catch (dbError) {
       console.warn(
-        "[v0] Database not available, using mock questions:",
-        dbError instanceof Error ? dbError.message : String(dbError),
+        "[v0] Database error, using mock questions:",
+        dbError instanceof Error ? dbError.message : "Unknown error",
       )
+      dbAvailable = false
     }
 
-    // Always fallback to mock data with explicit 200 status
-    console.log("[v0] Using mock questions")
+    // Always return mock data with 200 status as fallback
+    console.log("[v0] Returning mock questions")
     return NextResponse.json(
       {
         questions: MOCK_QUESTIONS,
-        warning: "Using mock data - database tables not initialized",
+        source: "mock",
+        message: "Using sample questions - database not available",
       },
       { status: 200 },
     )
   } catch (error) {
-    console.error("[v0] Unexpected error in questions route:", error instanceof Error ? error.message : String(error))
+    console.error("[v0] Unexpected error in GET handler:", error instanceof Error ? error.message : String(error))
     return NextResponse.json(
       {
         questions: MOCK_QUESTIONS,
-        warning: "Using mock data due to unexpected error",
+        source: "mock",
+        message: "Using sample questions due to error",
       },
       { status: 200 },
     )
